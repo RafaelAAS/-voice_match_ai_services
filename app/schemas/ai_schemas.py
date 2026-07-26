@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class InterviewContext(BaseModel):
@@ -30,3 +30,26 @@ class FinalEvaluationResponse(BaseModel):
     weaknesses: list[str]
     improvements: list[str]
     recommendation: str
+
+
+class EvaluateAudioRequest(BaseModel):
+    audio_path: str = Field(
+        ..., description="Caminho do áudio no volume compartilhado."
+    )
+    context: InterviewContext
+
+
+class InterviewMetrics(BaseModel):
+    proatividade: int = Field(..., ge=0, le=10)
+    resolucao_de_problemas: int = Field(..., ge=0, le=10)
+    trabalho_em_equipe: int = Field(..., ge=0, le=10)
+
+
+class EvaluateAudioResponse(BaseModel):
+    transcricao: str = Field(
+        ..., description="Transcrição integral da fala do candidato."
+    )
+    proxima_pergunta: str = Field(
+        ..., description="Próxima pergunta a ser feita ao candidato."
+    )
+    metricas: InterviewMetrics
