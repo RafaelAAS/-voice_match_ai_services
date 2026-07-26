@@ -29,9 +29,6 @@ class GroqAIService:
         self.transcription_model = "whisper-large-v3"
         self.chat_model = "llama-3.3-70b-versatile"
 
-    # ------------------------------------------------------------------
-    # Etapa 1: transcrição pura (áudio -> texto) via Whisper
-    # ------------------------------------------------------------------
     def transcribe_audio(self, audio_file_path: str) -> str:
         if not os.path.exists(audio_file_path):
             raise FileNotFoundError(
@@ -55,10 +52,6 @@ class GroqAIService:
             raise ValueError("O Whisper retornou uma transcrição vazia.")
         return transcricao
 
-    # ------------------------------------------------------------------
-    # Helpers de formatação: transformam dict/list em texto legível para
-    # o prompt (e, futuramente, reaproveitável se precisar exibir no front)
-    # ------------------------------------------------------------------
     @staticmethod
     def _format_behavioral_profile(behavioral_profile: dict[str, int] | None) -> str:
         if not behavioral_profile:
@@ -82,9 +75,6 @@ class GroqAIService:
             linhas.append(f"{i}. " + " | ".join(partes))
         return "\n".join(linhas)
 
-    # ------------------------------------------------------------------
-    # Etapa 2: avaliação a partir do texto já transcrito (sem áudio)
-    # ------------------------------------------------------------------
     def evaluate_transcript(self, transcricao: str, context: dict) -> dict[str, Any]:
         perfil_formatado = self._format_behavioral_profile(
             context.get("behavioral_profile")
@@ -133,10 +123,6 @@ class GroqAIService:
             print("Resposta bruta do Groq (não era JSON válido):", raw_text)
             raise
 
-    # ------------------------------------------------------------------
-    # Orquestração: junta as duas etapas no formato que o back-end/frontend
-    # consomem
-    # ------------------------------------------------------------------
     async def process_audio_interview(
         self, audio_file_path: str, context: dict
     ) -> dict[str, Any]:

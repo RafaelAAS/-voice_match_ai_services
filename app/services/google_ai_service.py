@@ -29,17 +29,6 @@ class GoogleAIService:
         self.client = genai.Client(api_key=api_key)
         self.model_name = "gemini-flash-latest"
 
-    # ------------------------------------------------------------------
-    # Etapa 1: transcrição pura (áudio -> texto)
-    #
-    # NOTA: usamos bytes inline (types.Part.from_bytes) em vez de
-    # client.files.upload(). Chaves novas do AI Studio no formato "AQ."
-    # (Auth key) estão retornando 401 ACCESS_TOKEN_TYPE_UNSUPPORTED
-    # especificamente no FileService/upload, mesmo com generate_content
-    # funcionando normalmente (bug conhecido e reportado no fórum oficial
-    # do Google em 2026). Enviar os bytes direto no generate_content evita
-    # depender do endpoint de upload que está com esse problema.
-    # ------------------------------------------------------------------
     def transcribe_audio(self, audio_file_path: str) -> str:
         if not os.path.exists(audio_file_path):
             raise FileNotFoundError(
@@ -68,9 +57,6 @@ class GoogleAIService:
             raise ValueError("O Gemini retornou uma transcrição vazia.")
         return transcricao
 
-    # ------------------------------------------------------------------
-    # Etapa 2: avaliação a partir do texto já transcrito (sem áudio)
-    # ------------------------------------------------------------------
     def evaluate_transcript(self, transcricao: str, context: dict) -> dict[str, Any]:
         prompt = f"""
         Você é um recrutador técnico avaliando um candidato.
@@ -108,9 +94,6 @@ class GoogleAIService:
             print("Resposta bruta do Gemini (não era JSON válido):", raw_text)
             raise
 
-    # ------------------------------------------------------------------
-    # Orquestração: junta as duas etapas no formato que o back-end consome
-    # ------------------------------------------------------------------
     async def process_audio_interview(
         self, audio_file_path: str, context: dict
     ) -> dict[str, Any]:
