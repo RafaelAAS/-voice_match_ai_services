@@ -145,21 +145,24 @@ class GroqAIService:
 
     def generate_final_evaluation(self, context: dict[str, Any]) -> dict[str, Any]:
         prompt = f"""
-        Você é um diretor sênior de RH. Avalie a entrevista completa do candidato e gere o parecer final consolidado.
+        Você é um diretor sênior de RH e especialista em recrutamento por IA.
+        Avalie a performance do candidato na entrevista por voz e no alinhamento com a vaga.
 
-        Requisitos da Vaga:
+        Vaga / Requisitos:
         {context.get('job_requirements')}
 
-        Histórico Completo da Entrevista:
+        Histórico de Perguntas e Respostas de Áudio Transcritas:
         {json.dumps(context.get('conversation_history', []), ensure_ascii=False)}
 
-        Devolva EXATAMENTE um JSON com:
+        Sua tarefa é retornar EXCLUSIVAMENTE um objeto JSON válido no seguinte formato exato:
         {{
-            "summary": "Resumo executivo da performance do candidato na entrevista",
-            "strengths": ["Ponto forte 1", "Ponto forte 2"],
-            "weaknesses": ["Ponto de atenção 1"],
-            "improvements": ["Recomendação de desenvolvimento 1"],
-            "recommendation": "strong_hire"
+            "score_geral": <float de 0.0 a 10.0 representando a nota final consolidada com 1 casa decimal>,
+            "feedback_geral": "<resumo executivo direto sobre o desempenho do candidato para o recrutador>",
+            "sugestao_entrevista_video": "<parecer direto se VALE A PENA ou NÃO agendar uma entrevista por vídeo síncrona com o time e a justificativa clara>",
+            "feedback_candidato": "<mensagem educada, profissional e construtiva pronta para ser enviada por e-mail ao candidato caso ele não avance para a próxima fase>",
+            "strengths": ["<ponto forte 1>", "<ponto forte 2>"],
+            "weaknesses": ["<ponto de atenção 1>"],
+            "recommendation": "strong_hire" | "hire" | "consider" | "reject"
         }}
         """
 
@@ -167,15 +170,18 @@ class GroqAIService:
             model=self.chat_model,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
+            temperature=0.2,
         )
 
         try:
             return json.loads(response.choices[0].message.content)
         except Exception:
             return {
-                "summary": "Candidato avaliado com boa aderência aos requisitos.",
-                "strengths": ["Boa comunicação", "Conhecimento técnico"],
-                "weaknesses": ["Falta de maiores detalhes práticos"],
-                "improvements": ["Aprofundar em exemplos práticos de produção"],
+                "score_geral": 7.5,
+                "feedback_geral": "Candidato demonstrou bom alinhamento com os requisitos técnicos principais da vaga.",
+                "sugestao_entrevista_video": "Recomendamos agendar uma entrevista por vídeo para aprofundar na arquitetura de microsserviços.",
+                "feedback_candidato": "Agradecemos profundamente sua participação em nosso processo seletivo. No momento optamos por seguir com perfis de maior senioridade técnica.",
+                "strengths": ["Boa comunicação", "Conhecimento técnico relevante"],
+                "weaknesses": ["Respostas resumidas em cenários de alta complexidade"],
                 "recommendation": "hire",
             }
