@@ -44,6 +44,31 @@ class MockAIService(AIServiceBase):
             "recommendation": "good_match",
         }
 
+    async def process_audio_interview(
+        self, audio_file_path: str, context: dict
+    ) -> dict[str, Any]:
+        return {
+            "transcricao": "Esta é uma transcrição demonstrativa da sua resposta por áudio.",
+            "proxima_pergunta": "Como você lida com prazos apertados e priorização de tarefas em projetos complexos?",
+            "metricas": {
+                "proatividade": 8,
+                "resolucao_de_problemas": 8,
+                "trabalho_em_equipe": 9,
+                "acustica": {
+                    "pitch_f0_hz": 185.4,
+                    "rms_energy": 0.042,
+                    "speech_rate_wpm": 145.0,
+                    "pause_hesitation_sec": 0.8,
+                    "soft_skills_scores": {
+                        "oratoria": 8.5,
+                        "firmeza_vocal": 8.0,
+                        "controle_estresse": 8.8,
+                        "entusiasmo": 8.2,
+                    },
+                },
+            },
+        }
+
 
 def get_ai_service() -> AIServiceBase:
     """

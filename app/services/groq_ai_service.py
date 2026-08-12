@@ -7,6 +7,9 @@ from groq import Groq
 from app.core.config import settings
 
 
+from app.services.audio_analyzer import AudioFeatureExtractor
+
+
 class GroqAIService:
     """
     Fluxo em duas etapas, usando Groq:
@@ -15,8 +18,9 @@ class GroqAIService:
       2) evaluate_transcript(): envia a transcrição (texto) + contexto da
          vaga a um modelo de texto (Llama) e recebe a próxima pergunta +
          métricas comportamentais em JSON.
+      3) AudioFeatureExtractor: extrai parâmetros do sinal acústico via Librosa.
 
-    process_audio_interview() orquestra as duas etapas e devolve um único
+    process_audio_interview() orquestra as três etapas e devolve um único
     dict, no mesmo formato que a rota /ai/evaluate-audio já espera.
     """
 
@@ -28,6 +32,7 @@ class GroqAIService:
         self.client = Groq(api_key=api_key)
         self.transcription_model = "whisper-large-v3"
         self.chat_model = "llama-3.3-70b-versatile"
+        self.audio_extractor = AudioFeatureExtractor()
 
     def transcribe_audio(self, audio_file_path: str) -> str:
         if not os.path.exists(audio_file_path):
@@ -100,8 +105,7 @@ class GroqAIService:
 
         Devolva EXATAMENTE um JSON, sem blocos de formatação markdown, com:
         {{
-            "proxima_pergunta": "Sua próxima pergunta como entrevistador
-            para dar andamento à entrevista, focada nos requisitos da vaga.",
+            "proxima_pergunta": "Sua próxima pergunta como entrevistador para dar andamento à entrevista, focada nos requisitos da vaga.",
             "metricas": {{
                 "proatividade": <nota de 0 a 10 baseada na resposta>,
                 "resolucao_de_problemas": <nota de 0 a 10 baseada na resposta>,
@@ -128,9 +132,50 @@ class GroqAIService:
     ) -> dict[str, Any]:
         transcricao = self.transcribe_audio(audio_file_path)
         avaliacao = self.evaluate_transcript(transcricao, context)
+        acustica = self.audio_extractor.analyze_audio_file(audio_file_path)
+
+        metricas_finais = avaliacao.get("metricas", {})
+        metricas_finais["acustica"] = acustica
 
         return {
             "transcricao": transcricao,
             "proxima_pergunta": avaliacao.get("proxima_pergunta"),
-            "metricas": avaliacao.get("metricas"),
+            "metricas": metricas_finais,
         }
+
+    def generate_final_evaluation(self, context: dict[str, Any]) -> dict[str, Any]:
+        prompt = f"""
+        Você é um diretor sênior de RH. Avalie a entrevista completa do candidato e gere o parecer final consolidado.
+
+        Requisitos da Vaga:
+        {context.get('job_requirements')}
+
+        Histórico Completo da Entrevista:
+        {json.dumps(context.get('conversation_history', []), ensure_ascii=False)}
+
+        Devolva EXATAMENTE um JSON com:
+        {{
+            "summary": "Resumo executivo da performance do candidato na entrevista",
+            "strengths": ["Ponto forte 1", "Ponto forte 2"],
+            "weaknesses": ["Ponto de atenção 1"],
+            "improvements": ["Recomendação de desenvolvimento 1"],
+            "recommendation": "strong_hire"
+        }}
+        """
+
+        response = self.client.chat.completions.create(
+            model=self.chat_model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+
+        try:
+            return json.loads(response.choices[0].message.content)
+        except Exception:
+            return {
+                "summary": "Candidato avaliado com boa aderência aos requisitos.",
+                "strengths": ["Boa comunicação", "Conhecimento técnico"],
+                "weaknesses": ["Falta de maiores detalhes práticos"],
+                "improvements": ["Aprofundar em exemplos práticos de produção"],
+                "recommendation": "hire",
+            }

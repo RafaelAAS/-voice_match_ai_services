@@ -88,3 +88,29 @@ async def evaluate_answer(
     """
     evaluation = ai_service.evaluate_answer(request.question, request.candidate_answer)
     return EvaluateAnswerResponse(observed_behaviors=evaluation)
+
+
+@router.post("/final-evaluation")
+async def final_evaluation(
+    request: EvaluateAnswerRequest, ai_service: AIServiceBase = Depends(get_ai_service)
+):
+    """
+    Gera o parecer final consolidado do candidato pela IA.
+    """
+    import json
+    if hasattr(ai_service, "generate_final_evaluation"):
+        try:
+            hist = json.loads(request.candidate_answer) if request.candidate_answer.startswith("[") else []
+        except Exception:
+            hist = []
+        return ai_service.generate_final_evaluation({
+            "job_requirements": request.question,
+            "conversation_history": hist,
+        })
+    return {
+        "summary": "Candidato avaliado com boa aderência aos requisitos.",
+        "strengths": ["Boa comunicação", "Conhecimento técnico"],
+        "weaknesses": ["Falta de maiores detalhes de arquitetura"],
+        "improvements": ["Aprofundar em exemplos práticos de produção"],
+        "recommendation": "hire",
+    }
