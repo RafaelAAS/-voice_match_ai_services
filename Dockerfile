@@ -4,7 +4,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Instala dependências primeiro (aproveita cache do Docker se requirements.txt não mudar)
+# Instala dependências de sistema para decodificação de áudio (FFmpeg e libsndfile)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala dependências do Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

@@ -2,6 +2,9 @@ import os
 import logging
 from typing import Dict, Any
 
+import tempfile
+import subprocess
+
 logger = logging.getLogger(__name__)
 
 # Tentar importar librosa e soundfile
@@ -21,6 +24,30 @@ class AudioFeatureExtractor:
     mapeando-os para pontuações de Soft Skills.
     """
 
+    @staticmethod
+    def _load_audio_safely(audio_file_path: str, sr: int = 22050):
+        """
+        Carrega arquivos de áudio de forma segura (.webm, .wav, .mp3, etc.)
+        utilizando FFmpeg para conversão quando necessário.
+        """
+        try:
+            return librosa.load(audio_file_path, sr=sr, mono=True)
+        except Exception:
+            # Fallback para conversão limpa via FFmpeg
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                tmp_wav = tmp.name
+            try:
+                cmd = ["ffmpeg", "-y", "-i", audio_file_path, "-ar", str(sr), "-ac", "1", tmp_wav]
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                y, sr_loaded = librosa.load(tmp_wav, sr=sr, mono=True)
+                return y, sr_loaded
+            finally:
+                if os.path.exists(tmp_wav):
+                    try:
+                        os.remove(tmp_wav)
+                    except Exception:
+                        pass
+
     def analyze_audio_file(self, audio_file_path: str) -> Dict[str, Any]:
         """
         Analisa um arquivo físico de áudio e retorna métricas acústicas e scores de soft skills.
@@ -32,8 +59,8 @@ class AudioFeatureExtractor:
             return self._fallback_features(reason="Librosa não instalado")
 
         try:
-            # Carregar áudio com Librosa (amostragem em 22050 Hz)
-            y, sr = librosa.load(audio_file_path, sr=22050, mono=True)
+            # Carregar áudio com segurança (amostragem em 22050 Hz)
+            y, sr = self._load_audio_safely(audio_file_path, sr=22050)
             duration_sec = float(librosa.get_duration(y=y, sr=sr))
 
             if duration_sec <= 0:
