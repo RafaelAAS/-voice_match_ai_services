@@ -36,20 +36,31 @@ class MockAIService(AIServiceBase):
 
     def generate_final_evaluation(self, context: dict[str, Any]) -> dict[str, Any]:
         return {
-            "summary": "O candidato demonstrou sólida base técnica e boa "
-            "adequação ao perfil comportamental.",
-            "strengths": ["Conhecimento em automação", "Trabalho em equipe"],
-            "weaknesses": ["Comunicação sob forte pressão"],
-            "improvements": ["Explorar mais práticas de documentação de código"],
-            "recommendation": "good_match",
+            "score_geral": 8.5,
+            "feedback_geral": "O candidato concluiu com êxito as 3 etapas da entrevista (Pessoal, Fit Cultural e Técnica), demonstrando sólida base técnica e ótima comunicação.",
+            "sugestao_entrevista_video": "Recomendamos fortemente o agendamento de uma entrevista por vídeo para alinhamento final de expectativas e proposta.",
+            "feedback_candidato": "Agradecemos imensamente sua dedicação e respostas nas 3 etapas da nossa entrevista de voz! Suas colocações foram registradas. Lembramos que o avanço para as próximas fases do processo seletivo dependerá estritamente da avaliação e deliberação da equipe de recrutamento.",
+            "strengths": ["Comunicação clara e articulada", "Boa resolução de conflitos em equipe", "Domínio das tecnologias exigidas"],
+            "weaknesses": ["Pode aprofundar em exemplos práticos de arquitetura sob alta escala"],
+            "recommendation": "strong_hire",
         }
 
     async def process_audio_interview(
         self, audio_file_path: str, context: dict
     ) -> dict[str, Any]:
+        historico = context.get("conversation_history") or []
+        num_respostas = len([h for h in historico if h.get("resposta")]) + 1
+
+        if num_respostas == 1:
+            proxima = "Muito obrigado pela sua apresentação! Entrando na nossa etapa de Fit Cultural: como você lida com divergências de opiniões e trabalho em equipe em momentos de alta pressão?"
+        elif num_respostas == 2:
+            proxima = "Excelente reflexão. Agora para nossa etapa Técnica: conte-me sobre um desafio técnico complexo que você enfrentou na sua stack principal e como foi a sua abordagem para resolvê-lo."
+        else:
+            proxima = None
+
         return {
-            "transcricao": "Esta é uma transcrição demonstrativa da sua resposta por áudio.",
-            "proxima_pergunta": "Como você lida com prazos apertados e priorização de tarefas em projetos complexos?",
+            "transcricao": "Esta é uma transcrição demonstrativa da sua resposta por áudio gravada pelo microfone.",
+            "proxima_pergunta": proxima,
             "metricas": {
                 "proatividade": 8,
                 "resolucao_de_problemas": 8,

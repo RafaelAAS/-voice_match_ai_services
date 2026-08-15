@@ -84,12 +84,38 @@ class GroqAIService:
         perfil_formatado = self._format_behavioral_profile(
             context.get("behavioral_profile")
         )
-        historico_formatado = self._format_conversation_history(
-            context.get("conversation_history")
-        )
+        historico = context.get("conversation_history") or []
+        historico_formatado = self._format_conversation_history(historico)
+        
+        # Determinar qual pergunta deve ser gerada a seguir no ciclo de 3 fases:
+        # Pergunta 1 já foi respondida -> Próxima deve ser Etapa 2 (Fit Cultural)
+        # Pergunta 2 já foi respondida -> Próxima deve ser Etapa 3 (Técnica)
+        # Pergunta 3 já foi respondida -> Não há próxima pergunta (Entrevista concluída)
+        num_respostas = len([h for h in historico if h.get("resposta")]) + 1
+        
+        if num_respostas == 1:
+            diretriz_etapa = (
+                "Esta foi a resposta da Etapa 1 (Apresentação Pessoal / Trajetória). "
+                "Sua próxima pergunta DEVE SER OBRIGATORIAMENTE da Etapa 2 (Fit Cultural): "
+                "pergunte sobre dinâmica e trabalho em equipe, convivência com colegas, valores e resolução de conflitos."
+            )
+        elif num_respostas == 2:
+            diretriz_etapa = (
+                "Esta foi a resposta da Etapa 2 (Fit Cultural). "
+                "Sua próxima pergunta DEVE SER OBRIGATORIAMENTE da Etapa 3 (Técnica / Desafio Prático): "
+                "pergunte sobre um desafio técnico prático ou aprofundamento específico nas competências, ferramentas e tecnologias exigidas pela vaga."
+            )
+        else:
+            diretriz_etapa = (
+                "Esta foi a resposta da Etapa 3 (Técnica). A entrevista atingiu o limite máximo de 3 perguntas. "
+                "Retorne 'proxima_pergunta': null."
+            )
 
         prompt = f"""
-        Você é um recrutador técnico avaliando um candidato.
+        Você é a IA recrutadora do VoiceMatch AI conduzindo uma entrevista estruturada de 3 fases.
+
+        Diretriz de Fase:
+        {diretriz_etapa}
 
         Requisitos da Vaga:
         {context.get('job_requirements')}
@@ -105,7 +131,7 @@ class GroqAIService:
 
         Devolva EXATAMENTE um JSON, sem blocos de formatação markdown, com:
         {{
-            "proxima_pergunta": "Sua próxima pergunta como entrevistador para dar andamento à entrevista, focada nos requisitos da vaga.",
+            "proxima_pergunta": {"null" if num_respostas >= 3 else '"Texto direto e objetivo da próxima pergunta para o candidato"'},
             "metricas": {{
                 "proatividade": <nota de 0 a 10 baseada na resposta>,
                 "resolucao_de_problemas": <nota de 0 a 10 baseada na resposta>,
@@ -122,7 +148,10 @@ class GroqAIService:
 
         raw_text = response.choices[0].message.content
         try:
-            return json.loads(raw_text)
+            dados = json.loads(raw_text)
+            if num_respostas >= 3:
+                dados["proxima_pergunta"] = None
+            return dados
         except json.JSONDecodeError:
             print("Resposta bruta do Groq (não era JSON válido):", raw_text)
             raise
@@ -145,21 +174,21 @@ class GroqAIService:
 
     def generate_final_evaluation(self, context: dict[str, Any]) -> dict[str, Any]:
         prompt = f"""
-        Você é um diretor sênior de RH e especialista em recrutamento por IA.
-        Avalie a performance do candidato na entrevista por voz e no alinhamento com a vaga.
+        Você é um diretor sênior de RH e especialista em recrutamento por IA do VoiceMatch AI.
+        Avalie a performance consolidada do candidato após a conclusão do ciclo de 3 perguntas (Pessoal, Fit Cultural e Técnica).
 
         Vaga / Requisitos:
         {context.get('job_requirements')}
 
-        Histórico de Perguntas e Respostas de Áudio Transcritas:
+        Histórico das 3 Perguntas e Respostas Transcritas:
         {json.dumps(context.get('conversation_history', []), ensure_ascii=False)}
 
         Sua tarefa é retornar EXCLUSIVAMENTE um objeto JSON válido no seguinte formato exato:
         {{
             "score_geral": <float de 0.0 a 10.0 representando a nota final consolidada com 1 casa decimal>,
-            "feedback_geral": "<resumo executivo direto sobre o desempenho do candidato para o recrutador>",
+            "feedback_geral": "<resumo executivo direto sobre o desempenho do candidato nas 3 etapas para o recrutador>",
             "sugestao_entrevista_video": "<parecer direto se VALE A PENA ou NÃO agendar uma entrevista por vídeo síncrona com o time e a justificativa clara>",
-            "feedback_candidato": "<mensagem educada, profissional e construtiva pronta para ser enviada por e-mail ao candidato caso ele não avance para a próxima fase>",
+            "feedback_candidato": "<mensagem educada, profissional e acolhedora ao candidato, destacando sua participação no ciclo de 3 perguntas e deixando explícito que o avanço para as próximas fases do processo seletivo dependerá estritamente da análise e decisão da equipe de recrutamento>",
             "strengths": ["<ponto forte 1>", "<ponto forte 2>"],
             "weaknesses": ["<ponto de atenção 1>"],
             "recommendation": "strong_hire" | "hire" | "consider" | "reject"
@@ -178,10 +207,10 @@ class GroqAIService:
         except Exception:
             return {
                 "score_geral": 7.5,
-                "feedback_geral": "Candidato demonstrou bom alinhamento com os requisitos técnicos principais da vaga.",
-                "sugestao_entrevista_video": "Recomendamos agendar uma entrevista por vídeo para aprofundar na arquitetura de microsserviços.",
-                "feedback_candidato": "Agradecemos profundamente sua participação em nosso processo seletivo. No momento optamos por seguir com perfis de maior senioridade técnica.",
+                "feedback_geral": "Candidato concluiu o ciclo de 3 perguntas demonstrando bom alinhamento inicial com os requisitos da vaga.",
+                "sugestao_entrevista_video": "Recomendamos agendar uma entrevista por vídeo para aprofundar na experiência prática em projetos de grande escala.",
+                "feedback_candidato": "Agradecemos muito sua participação e empenho na entrevista de voz do VoiceMatch AI! Suas respostas para as etapas Pessoal, Fit Cultural e Técnica foram registradas com sucesso. Informamos que o avanço para as próximas fases do processo seletivo dependerá estritamente da análise e deliberação da equipe de recrutamento.",
                 "strengths": ["Boa comunicação", "Conhecimento técnico relevante"],
-                "weaknesses": ["Respostas resumidas em cenários de alta complexidade"],
+                "weaknesses": ["Poderia detalhar mais exemplos práticos em produção"],
                 "recommendation": "hire",
             }
