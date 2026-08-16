@@ -100,13 +100,31 @@ async def final_evaluation(
     import json
     if hasattr(ai_service, "generate_final_evaluation"):
         try:
-            hist = json.loads(request.candidate_answer) if request.candidate_answer.startswith("[") else []
+            raw = request.candidate_answer.strip()
+            parsed = json.loads(raw) if (raw.startswith("{") or raw.startswith("[")) else {}
         except Exception:
-            hist = []
-        return ai_service.generate_final_evaluation({
-            "job_requirements": request.question,
-            "conversation_history": hist,
-        })
+            parsed = {}
+
+        if isinstance(parsed, list):
+            context = {
+                "job_requirements": request.question,
+                "conversation_history": parsed,
+            }
+        elif isinstance(parsed, dict):
+            context = {
+                "job_requirements": request.question,
+                "candidate_name": parsed.get("candidate_name", ""),
+                "job_title": parsed.get("job_title", ""),
+                "screening_evaluation": parsed.get("screening_evaluation", {}),
+                "conversation_history": parsed.get("voice_interview_history", []),
+            }
+        else:
+            context = {
+                "job_requirements": request.question,
+                "conversation_history": [],
+            }
+
+        return ai_service.generate_final_evaluation(context)
     return {
         "summary": "Candidato avaliado com boa aderência aos requisitos.",
         "strengths": ["Boa comunicação", "Conhecimento técnico"],

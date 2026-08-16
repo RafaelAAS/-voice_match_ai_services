@@ -35,11 +35,35 @@ class MockAIService(AIServiceBase):
         }
 
     def generate_final_evaluation(self, context: dict[str, Any]) -> dict[str, Any]:
+        cand_name = context.get("candidate_name") or "Candidato(a)"
+        primeiro_nome = cand_name.split()[0] if cand_name else "Candidato(a)"
+        job_title = context.get("job_title") or "Desenvolvedor Full Stack"
         return {
             "score_geral": 8.5,
-            "feedback_geral": "O candidato concluiu com êxito as 3 etapas da entrevista (Pessoal, Fit Cultural e Técnica), demonstrando sólida base técnica e ótima comunicação.",
+            "feedback_geral": (
+                f"Avaliação Executiva de Seleção — Candidato: {cand_name} (Posição: {job_title})\n\n"
+                "1. Profundidade Técnica & Resolução Prática:\n"
+                "O candidato demonstrou raciocínio analítico consistente na pergunta técnica, estruturando o diagnóstico de performance em etapas lógicas (identificação de gargalos em chamadas externas e refatoração com bibliotecas otimizadas). Contudo, a abordagem técnica permaneceu concentrada no nível de aplicação; recomenda-se que a banca técnica avalie na entrevista síncrona o domínio sobre indexação em banco de dados, estratégias de cache distribuído e tolerância a falhas sob volumetrias superiores a 100k req/min.\n\n"
+                "2. Maturidade Comportamental & Dinâmica de Equipe:\n"
+                "Na etapa de Fit Cultural, evidenciou maturidade ao separar aspectos interpessoais de divergências de projeto, priorizando critérios objetivos (prazos, impacto e manutenibilidade). Mostra perfil colaborativo com baixa propensão a conflitos destrutivos, adequado para ambientes ágeis.\n\n"
+                "3. Performance Vocal & Controle sob Pressão:\n"
+                "A análise prosódica revelou dicção clara, bom controle de ansiedade e firmeza vocal estável. Não foram detectadas hesitações excessivas, o que indica segurança nas respostas formuladas.\n\n"
+                "4. Parecer Conclusivo para o Recrutador:\n"
+                "Apresenta forte aderência ao perfil. Recomendado para avanço imediato para entrevista técnica por vídeo com foco em arquitetura de microsserviços e testes sob estresse."
+            ),
             "sugestao_entrevista_video": "Recomendamos fortemente o agendamento de uma entrevista por vídeo para alinhamento final de expectativas e proposta.",
-            "feedback_candidato": "Agradecemos imensamente sua dedicação e respostas nas 3 etapas da nossa entrevista de voz! Suas colocações foram registradas. Lembramos que o avanço para as próximas fases do processo seletivo dependerá estritamente da avaliação e deliberação da equipe de recrutamento.",
+            "feedback_candidato": (
+                f"Olá, {primeiro_nome}! Parabéns pela conclusão do seu ciclo de 3 etapas no VoiceMatch AI para a vaga de {job_title}.\n\n"
+                "📄 **Análise Semântica de Currículo:**\n"
+                "Seu currículo demonstrou excelente compatibilidade com as hard skills requeridas para a vaga, evidenciando domínio prático em desenvolvimento de software, estrutura de bancos de dados e boas práticas de engenharia.\n\n"
+                "🎙️ **Entrevista por Voz (Soft Skills & Postura):**\n"
+                "Durante as respostas por áudio, você apresentou ótima clareza de exposição, segurança técnica e maturidade ao discutir dinâmicas de equipe e resolução de problemas sob pressão.\n\n"
+                "🛠️ **Sugestão de Melhoria Técnica:**\n"
+                "Para fortalecer ainda mais seu perfil em relação aos requisitos desta vaga, recomendamos aprofundar em frameworks modernos de frontend (como Tailwind CSS e Angular) e em práticas avançadas de testes automatizados e arquitetura de microsserviços.\n\n"
+                "🔊 **Análise Acústica & Oratória Vocal:**\n"
+                "A análise prosódica dos seus áudios detectou uma fala com excelente firmeza vocal, boa modulação de pitch e cadência fluida. Como sugestão para aprimorar ainda mais sua oratória, procure utilizar micropausas estratégicas entre a apresentação do problema e a solução técnica para reforçar ainda mais o impacto da sua mensagem.\n\n"
+                "Seu parecer consolidado foi encaminhado ao time de recrutamento, que fará a deliberação dos próximos passos."
+            ),
             "strengths": ["Comunicação clara e articulada", "Boa resolução de conflitos em equipe", "Domínio das tecnologias exigidas"],
             "weaknesses": ["Pode aprofundar em exemplos práticos de arquitetura sob alta escala"],
             "recommendation": "strong_hire",
@@ -54,7 +78,7 @@ class MockAIService(AIServiceBase):
         if num_respostas == 1:
             proxima = "Muito obrigado pela sua apresentação! Entrando na nossa etapa de Fit Cultural: como você lida com divergências de opiniões e trabalho em equipe em momentos de alta pressão?"
         elif num_respostas == 2:
-            proxima = "Excelente reflexão. Agora para nossa etapa Técnica: conte-me sobre um desafio técnico complexo que você enfrentou na sua stack principal e como foi a sua abordagem para resolvê-lo."
+            proxima = "Excelente reflexão. Agora para nossa etapa de Pergunta Técnica: conte-me sobre como você estrutura e aplica na prática as principais tecnologias e padrões de arquitetura da sua stack no dia a dia."
         else:
             proxima = None
 

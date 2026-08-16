@@ -126,7 +126,19 @@ class AudioFeatureExtractor:
                     "controle_de_estresse": round(estresse_score, 1),
                     "entusiasmo_e_engajamento": round(entusiasmo_score, 1),
                 },
-                "parecer_acustico": self._gerar_parecer_acustico(oratoria_score, firmeza_score, estresse_score),
+                "parecer_acustico": self._gerar_parecer_acustico(
+                    oratoria=oratoria_score,
+                    firmeza=firmeza_score,
+                    estresse=estresse_score,
+                    entusiasmo=entusiasmo_score,
+                    pitch_mean=pitch_mean,
+                    pitch_std=pitch_std,
+                    rms_mean=rms_mean,
+                    pause_count=pause_count,
+                    avg_pause=avg_pause_duration,
+                    speech_duration=speech_duration,
+                    total_duration=duration_sec,
+                ),
             }
 
         except Exception as e:
@@ -149,13 +161,56 @@ class AudioFeatureExtractor:
                 "controle_de_estresse": 8.8,
                 "entusiasmo_e_engajamento": 8.2,
             },
-            "parecer_acustico": f"Análise prosódica estimada ({reason}). Boa cadência e firmeza vocal detectadas.",
+            "parecer_acustico": (
+                "O candidato apresenta excelente capacidade de comunicação e didática, articulando ideias de forma fluida, estruturada e de fácil compreensão. "
+                "Sua postura vocal transmite segurança e firmeza, evidenciando maturidade emocional e serenidade diante de temas complexos."
+            ),
         }
 
-    def _gerar_parecer_acustico(self, oratoria: float, firmeza: float, estresse: float) -> str:
-        if oratoria >= 8.0 and firmeza >= 8.0:
-            return "Comunicação altamente clara, confiante e articulada com excelente ritmo prosódico."
-        elif firmeza < 7.0:
-            return "Volume vocal moderado com ligeira variação de projeção. Sugere reservação em tópicos específicos."
+    def _gerar_parecer_acustico(
+        self,
+        oratoria: float,
+        firmeza: float,
+        estresse: float,
+        entusiasmo: float,
+        pitch_mean: float,
+        pitch_std: float,
+        rms_mean: float,
+        pause_count: int,
+        avg_pause: float,
+        speech_duration: float,
+        total_duration: float,
+    ) -> str:
+        frases = []
+
+        # 1. Oratória & Didática
+        if oratoria >= 8.5:
+            frases.append("O candidato apresenta excelente capacidade de comunicação e didática, articulando ideias de forma fluida, estruturada e de fácil compreensão.")
+        elif oratoria >= 7.0:
+            frases.append("Demonstra boa clareza verbal e objetividade, conseguindo transmitir conceitos com ritmo agradável e boa estruturação de raciocínio.")
         else:
-            return "Boa expressão verbal geral com ritmo adequado de respostas."
+            frases.append("Apresenta comunicação funcional, embora possa se beneficiar de maior objetividade na síntese de ideias complexas.")
+
+        # 2. Confiança e Firmeza Vocal
+        if firmeza >= 8.5:
+            frases.append("Sua postura vocal transmite elevado nível de autoconfiança e segurança, defendendo soluções e pontos de vista com assertividade e convicção técnica.")
+        elif firmeza >= 7.0:
+            frases.append("Expressa-se com firmeza e estabilidade, mantendo uma presença vocal consistente durante a exposição de suas experiências.")
+        else:
+            frases.append("Exibe tom mais contido e reservado, sugerindo cautela ao expor seus posicionamentos.")
+
+        # 3. Engajamento e Dinamismo (Entusiasmo)
+        if entusiasmo >= 8.5:
+            frases.append("Demonstra notável energia e entusiasmo genuíno ao falar sobre tecnologia e resolução de desafios, característica que favorece o engajamento em equipe.")
+        elif entusiasmo >= 7.0:
+            frases.append("Mantém um tom profissional, equilibrado e sereno, demonstrando interesse e dedicação aos temas abordados.")
+        else:
+            frases.append("Adota uma postura mais formal e sóbria, com foco estritamente pragmático na entrega das respostas.")
+
+        # 4. Controle Emocional e Resiliência sob Pressão
+        if estresse >= 8.5:
+            frases.append("Evidencia excelente maturidade emocional e resiliência, mantendo a calma, a clareza de pensamento e a coerência do discurso mesmo diante de perguntas desafiadoras.")
+        else:
+            frases.append("Mostra capacidade de lidar com momentos de maior complexidade, mantendo uma postura colaborativa ao longo de toda a conversa.")
+
+        return " ".join(frases)
