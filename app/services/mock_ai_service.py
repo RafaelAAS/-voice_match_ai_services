@@ -4,7 +4,6 @@ from app.services.ai_service_base import AIServiceBase
 
 
 class MockAIService(AIServiceBase):
-
     def transcribe_audio(self, audio_file_path: str) -> str:
         return (
             "Esta é uma transcrição simulada em que o candidato responde "
@@ -64,8 +63,14 @@ class MockAIService(AIServiceBase):
                 "A análise prosódica dos seus áudios detectou uma fala com excelente firmeza vocal, boa modulação de pitch e cadência fluida. Como sugestão para aprimorar ainda mais sua oratória, procure utilizar micropausas estratégicas entre a apresentação do problema e a solução técnica para reforçar ainda mais o impacto da sua mensagem.\n\n"
                 "Seu parecer consolidado foi encaminhado ao time de recrutamento, que fará a deliberação dos próximos passos."
             ),
-            "strengths": ["Comunicação clara e articulada", "Boa resolução de conflitos em equipe", "Domínio das tecnologias exigidas"],
-            "weaknesses": ["Pode aprofundar em exemplos práticos de arquitetura sob alta escala"],
+            "strengths": [
+                "Comunicação clara e articulada",
+                "Boa resolução de conflitos em equipe",
+                "Domínio das tecnologias exigidas",
+            ],
+            "weaknesses": [
+                "Pode aprofundar em exemplos práticos de arquitetura sob alta escala"
+            ],
             "recommendation": "strong_hire",
         }
 

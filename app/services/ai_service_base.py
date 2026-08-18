@@ -3,7 +3,6 @@ from typing import Any
 
 
 class AIServiceBase(ABC):
-
     @abstractmethod
     def transcribe_audio(self, audio_file_path: str) -> str:
         """Receives the audio file path and returns the transcribed text."""

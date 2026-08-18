@@ -61,9 +61,9 @@ class GoogleAIService:
         prompt = f"""
         Você é um recrutador técnico avaliando um candidato.
         Contexto da entrevista:
-        - Requisitos da Vaga: {context.get('job_requirements')}
-        - Histórico da Conversa: {context.get('conversation_history')}
-        - Perfil Comportamental Desejado: {context.get('behavioral_profile')}
+        - Requisitos da Vaga: {context.get("job_requirements")}
+        - Histórico da Conversa: {context.get("conversation_history")}
+        - Perfil Comportamental Desejado: {context.get("behavioral_profile")}
 
         O candidato respondeu (transcrição da fala dele):
         \"\"\"{transcricao}\"\"\"

@@ -2,7 +2,6 @@ from app.services.scoring_service import ScoringService
 
 
 class TestScoringService:
-
     def test_calculate_behavioral_score_normal(self):
         """Testa o cálculo padrão com pesos diferentes."""
         behaviors = {

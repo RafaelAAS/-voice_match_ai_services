@@ -1,5 +1,3 @@
-import os
-import pytest
 from app.services.audio_analyzer import AudioFeatureExtractor
 
 
@@ -20,5 +18,7 @@ def test_audio_analyzer_metrics_structure():
     result = extractor._fallback_features(reason="Teste unitario")
 
     assert result["duracao_total_segundos"] > 0
-    assert isinstance(result["soft_skills_acusticas"]["oratoria_e_clareza"], (int, float))
+    assert isinstance(
+        result["soft_skills_acusticas"]["oratoria_e_clareza"], (int, float)
+    )
     assert 0.0 <= result["soft_skills_acusticas"]["oratoria_e_clareza"] <= 10.0

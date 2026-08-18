@@ -5,8 +5,6 @@ from typing import Any
 from groq import Groq
 
 from app.core.config import settings
-
-
 from app.services.audio_analyzer import AudioFeatureExtractor
 
 
@@ -30,8 +28,13 @@ class GroqAIService:
             raise ValueError("A chave de API do Groq não foi encontrada.")
 
         self.client = Groq(api_key=api_key)
-        self.transcription_model = "whisper-large-v3"
-        self.chat_model = "llama-3.3-70b-versatile"
+        self.transcription_models = ["whisper-large-v3", "whisper-large-v3-turbo"]
+        self.chat_models = [
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.6-27b",
+            "llama-3.3-70b-versatile",
+        ]
         self.audio_extractor = AudioFeatureExtractor()
 
     def transcribe_audio(self, audio_file_path: str) -> str:
@@ -40,22 +43,52 @@ class GroqAIService:
                 f"Arquivo de áudio não encontrado no caminho: {audio_file_path}"
             )
 
-        with open(audio_file_path, "rb") as audio_file:
-            transcription = self.client.audio.transcriptions.create(
-                file=audio_file,
-                model=self.transcription_model,
-                language="pt",
-                response_format="text",
-            )
+        last_error = None
+        for model in self.transcription_models:
+            try:
+                with open(audio_file_path, "rb") as audio_file:
+                    transcription = self.client.audio.transcriptions.create(
+                        file=audio_file,
+                        model=model,
+                        language="pt",
+                        response_format="text",
+                    )
+                transcricao = (
+                    transcription
+                    if isinstance(transcription, str)
+                    else getattr(transcription, "text", str(transcription))
+                )
+                transcricao = transcricao.strip()
+                if transcricao:
+                    return transcricao
+            except Exception as e:
+                last_error = e
+                if "model_not_found" in str(e) or "404" in str(e):
+                    continue
+                raise
 
-        transcricao = (
-            transcription if isinstance(transcription, str) else transcription.text
-        )
-        transcricao = transcricao.strip()
+        if last_error:
+            raise last_error
+        raise ValueError("O Whisper retornou uma transcrição vazia.")
 
-        if not transcricao:
-            raise ValueError("O Whisper retornou uma transcrição vazia.")
-        return transcricao
+    def _chat_completion(
+        self, messages: list[dict[str, Any]], temperature: float = 0.2
+    ) -> Any:
+        last_error = None
+        for model in self.chat_models:
+            try:
+                return self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    response_format={"type": "json_object"},
+                    temperature=temperature,
+                )
+            except Exception as e:
+                last_error = e
+                if "model_not_found" in str(e) or "404" in str(e):
+                    continue
+                raise
+        raise last_error or RuntimeError("Nenhum modelo de chat da Groq disponível.")
 
     @staticmethod
     def _format_behavioral_profile(behavioral_profile: dict[str, int] | None) -> str:
@@ -69,7 +102,7 @@ class GroqAIService:
 
     @staticmethod
     def _format_conversation_history(
-        conversation_history: list[dict[str, str]] | None
+        conversation_history: list[dict[str, str]] | None,
     ) -> str:
         if not conversation_history:
             return "Esta é a primeira resposta do candidato na entrevista."
@@ -86,13 +119,13 @@ class GroqAIService:
         )
         historico = context.get("conversation_history") or []
         historico_formatado = self._format_conversation_history(historico)
-        
+
         # Determinar qual pergunta deve ser gerada a seguir no ciclo de 3 fases:
         # Pergunta 1 já foi respondida -> Próxima deve ser Etapa 2 (Fit Cultural)
         # Pergunta 2 já foi respondida -> Próxima deve ser Etapa 3 (Técnica)
         # Pergunta 3 já foi respondida -> Não há próxima pergunta (Entrevista concluída)
         num_respostas = len([h for h in historico if h.get("resposta")]) + 1
-        
+
         if num_respostas == 1:
             diretriz_etapa = (
                 "Esta foi a resposta da Etapa 1 (Apresentação Pessoal / Trajetória). "
@@ -118,7 +151,7 @@ class GroqAIService:
         {diretriz_etapa}
 
         Requisitos da Vaga:
-        {context.get('job_requirements')}
+        {context.get("job_requirements")}
 
         Perfil Comportamental Desejado:
         {perfil_formatado}
@@ -140,10 +173,8 @@ class GroqAIService:
         }}
         """
 
-        response = self.client.chat.completions.create(
-            model=self.chat_model,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
+        response = self._chat_completion(
+            messages=[{"role": "user", "content": prompt}], temperature=0.2
         )
 
         raw_text = response.choices[0].message.content
@@ -233,11 +264,8 @@ class GroqAIService:
         }}
         """
 
-        response = self.client.chat.completions.create(
-            model=self.chat_model,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=0.2,
+        response = self._chat_completion(
+            messages=[{"role": "user", "content": prompt}], temperature=0.2
         )
 
         try:

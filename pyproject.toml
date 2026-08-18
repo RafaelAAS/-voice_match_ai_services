@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+]
+ignore = [
+    "B008",   # Do not perform function calls in argument defaults (FastAPI Depends)
+    "B904",   # Within an except clause, raise exceptions with from err
+    "B905",   # zip() without an explicit strict= parameter
+    "E501",   # Line too long
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

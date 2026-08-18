@@ -1,13 +1,13 @@
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 class InterviewContext(BaseModel):
-    job_requirements: Optional[str] = ""
-    behavioral_profile: Optional[dict[str, Any]] = None
-    candidate_resume: Optional[str] = ""
-    conversation_history: Optional[list[dict[str, Any]]] = []
+    job_requirements: str | None = ""
+    behavioral_profile: dict[str, Any] | None = None
+    candidate_resume: str | None = ""
+    conversation_history: list[dict[str, Any]] | None = []
 
 
 class GenerateQuestionResponse(BaseModel):
@@ -36,16 +36,16 @@ class EvaluateAudioRequest(BaseModel):
     audio_path: str = Field(
         ..., description="Caminho do áudio no volume compartilhado."
     )
-    context: Optional[InterviewContext] = None
+    context: InterviewContext | None = None
 
 
 class EvaluateAudioResponse(BaseModel):
-    transcricao: Optional[str] = Field(
+    transcricao: str | None = Field(
         None, description="Transcrição integral da fala do candidato."
     )
-    proxima_pergunta: Optional[str] = Field(
+    proxima_pergunta: str | None = Field(
         None, description="Próxima pergunta a ser feita ao candidato."
     )
-    metricas: Optional[dict[str, Any]] = Field(
+    metricas: dict[str, Any] | None = Field(
         None, description="Métricas comportamentais e prosódicas extraídas."
     )
