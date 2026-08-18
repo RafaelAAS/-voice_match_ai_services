@@ -1,5 +1,4 @@
 class ScoringService:
-
     @staticmethod
     def calculate_behavioral_score(behaviors: dict[str, dict[str, float]]) -> float:
         """

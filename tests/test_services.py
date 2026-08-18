@@ -3,7 +3,6 @@ from app.services.mock_ai_service import MockAIService, get_ai_service
 
 
 class TestAIServices:
-
     def test_mock_ai_service_unused_methods(self):
         """Cobre os métodos TTS e Final Evaluation que não foram chamados pela API."""
         service = MockAIService()

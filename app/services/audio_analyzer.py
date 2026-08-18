@@ -1,9 +1,8 @@
-import os
 import logging
-from typing import Dict, Any
-
-import tempfile
+import os
 import subprocess
+import tempfile
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +10,13 @@ logger = logging.getLogger(__name__)
 try:
     import librosa
     import numpy as np
+
     LIBROSA_AVAILABLE = True
 except ImportError:
     LIBROSA_AVAILABLE = False
-    logger.warning("Librosa ou NumPy não disponíveis. Usando análise acústica simulada.")
+    logger.warning(
+        "Librosa ou NumPy não disponíveis. Usando análise acústica simulada."
+    )
 
 
 class AudioFeatureExtractor:
@@ -37,8 +39,23 @@ class AudioFeatureExtractor:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                 tmp_wav = tmp.name
             try:
-                cmd = ["ffmpeg", "-y", "-i", audio_file_path, "-ar", str(sr), "-ac", "1", tmp_wav]
-                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                cmd = [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    audio_file_path,
+                    "-ar",
+                    str(sr),
+                    "-ac",
+                    "1",
+                    tmp_wav,
+                ]
+                subprocess.run(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=True,
+                )
                 y, sr_loaded = librosa.load(tmp_wav, sr=sr, mono=True)
                 return y, sr_loaded
             finally:
@@ -48,7 +65,7 @@ class AudioFeatureExtractor:
                     except Exception:
                         pass
 
-    def analyze_audio_file(self, audio_file_path: str) -> Dict[str, Any]:
+    def analyze_audio_file(self, audio_file_path: str) -> dict[str, Any]:
         """
         Analisa um arquivo físico de áudio e retorna métricas acústicas e scores de soft skills.
         """
@@ -81,11 +98,15 @@ class AudioFeatureExtractor:
             # 3. Análise de Silêncio e Pausas de Hesitação
             # Detectar intervalos com som (top_db = 25)
             non_silent_intervals = librosa.effects.split(y, top_db=25)
-            speech_duration = float(sum((end - start) for start, end in non_silent_intervals) / sr)
+            speech_duration = float(
+                sum((end - start) for start, end in non_silent_intervals) / sr
+            )
             silence_duration = max(0.0, duration_sec - speech_duration)
 
             pause_count = max(0, len(non_silent_intervals) - 1)
-            avg_pause_duration = float(silence_duration / pause_count) if pause_count > 0 else 0.0
+            avg_pause_duration = (
+                float(silence_duration / pause_count) if pause_count > 0 else 0.0
+            )
 
             # 4. Cálculo de Métricas de Soft Skills Acústicas (0.0 a 10.0)
 
@@ -102,8 +123,13 @@ class AudioFeatureExtractor:
             firmeza_score = min(10.0, max(5.0, 7.0 + (rms_mean * 50) - (rms_std * 10)))
 
             # Controle de Estresse: Ausência de hesitações longas (>2.5s)
-            long_pauses = sum(1 for start, end in zip(non_silent_intervals[:-1], non_silent_intervals[1:])
-                              if (end[0] - start[1]) / sr > 2.5)
+            long_pauses = sum(
+                1
+                for start, end in zip(
+                    non_silent_intervals[:-1], non_silent_intervals[1:]
+                )
+                if (end[0] - start[1]) / sr > 2.5
+            )
             estresse_score = max(4.0, 9.5 - (long_pauses * 1.5))
 
             # Entusiasmo: Variação de pitch dinâmica (evita tom robótico monótono)
@@ -142,10 +168,12 @@ class AudioFeatureExtractor:
             }
 
         except Exception as e:
-            logger.warning(f"Erro ao analisar áudio com Librosa ({e}). Usando fallback.")
+            logger.warning(
+                f"Erro ao analisar áudio com Librosa ({e}). Usando fallback."
+            )
             return self._fallback_features(reason=str(e))
 
-    def _fallback_features(self, reason: str = "") -> Dict[str, Any]:
+    def _fallback_features(self, reason: str = "") -> dict[str, Any]:
         """Gera métricas simuladas consistentes quando o áudio físico não está disponível."""
         return {
             "duracao_total_segundos": 15.0,
@@ -185,32 +213,54 @@ class AudioFeatureExtractor:
 
         # 1. Oratória & Didática
         if oratoria >= 8.5:
-            frases.append("O candidato apresenta excelente capacidade de comunicação e didática, articulando ideias de forma fluida, estruturada e de fácil compreensão.")
+            frases.append(
+                "O candidato apresenta excelente capacidade de comunicação e didática, articulando ideias de forma fluida, estruturada e de fácil compreensão."
+            )
         elif oratoria >= 7.0:
-            frases.append("Demonstra boa clareza verbal e objetividade, conseguindo transmitir conceitos com ritmo agradável e boa estruturação de raciocínio.")
+            frases.append(
+                "Demonstra boa clareza verbal e objetividade, conseguindo transmitir conceitos com ritmo agradável e boa estruturação de raciocínio."
+            )
         else:
-            frases.append("Apresenta comunicação funcional, embora possa se beneficiar de maior objetividade na síntese de ideias complexas.")
+            frases.append(
+                "Apresenta comunicação funcional, embora possa se beneficiar de maior objetividade na síntese de ideias complexas."
+            )
 
         # 2. Confiança e Firmeza Vocal
         if firmeza >= 8.5:
-            frases.append("Sua postura vocal transmite elevado nível de autoconfiança e segurança, defendendo soluções e pontos de vista com assertividade e convicção técnica.")
+            frases.append(
+                "Sua postura vocal transmite elevado nível de autoconfiança e segurança, defendendo soluções e pontos de vista com assertividade e convicção técnica."
+            )
         elif firmeza >= 7.0:
-            frases.append("Expressa-se com firmeza e estabilidade, mantendo uma presença vocal consistente durante a exposição de suas experiências.")
+            frases.append(
+                "Expressa-se com firmeza e estabilidade, mantendo uma presença vocal consistente durante a exposição de suas experiências."
+            )
         else:
-            frases.append("Exibe tom mais contido e reservado, sugerindo cautela ao expor seus posicionamentos.")
+            frases.append(
+                "Exibe tom mais contido e reservado, sugerindo cautela ao expor seus posicionamentos."
+            )
 
         # 3. Engajamento e Dinamismo (Entusiasmo)
         if entusiasmo >= 8.5:
-            frases.append("Demonstra notável energia e entusiasmo genuíno ao falar sobre tecnologia e resolução de desafios, característica que favorece o engajamento em equipe.")
+            frases.append(
+                "Demonstra notável energia e entusiasmo genuíno ao falar sobre tecnologia e resolução de desafios, característica que favorece o engajamento em equipe."
+            )
         elif entusiasmo >= 7.0:
-            frases.append("Mantém um tom profissional, equilibrado e sereno, demonstrando interesse e dedicação aos temas abordados.")
+            frases.append(
+                "Mantém um tom profissional, equilibrado e sereno, demonstrando interesse e dedicação aos temas abordados."
+            )
         else:
-            frases.append("Adota uma postura mais formal e sóbria, com foco estritamente pragmático na entrega das respostas.")
+            frases.append(
+                "Adota uma postura mais formal e sóbria, com foco estritamente pragmático na entrega das respostas."
+            )
 
         # 4. Controle Emocional e Resiliência sob Pressão
         if estresse >= 8.5:
-            frases.append("Evidencia excelente maturidade emocional e resiliência, mantendo a calma, a clareza de pensamento e a coerência do discurso mesmo diante de perguntas desafiadoras.")
+            frases.append(
+                "Evidencia excelente maturidade emocional e resiliência, mantendo a calma, a clareza de pensamento e a coerência do discurso mesmo diante de perguntas desafiadoras."
+            )
         else:
-            frases.append("Mostra capacidade de lidar com momentos de maior complexidade, mantendo uma postura colaborativa ao longo de toda a conversa.")
+            frases.append(
+                "Mostra capacidade de lidar com momentos de maior complexidade, mantendo uma postura colaborativa ao longo de toda a conversa."
+            )
 
         return " ".join(frases)

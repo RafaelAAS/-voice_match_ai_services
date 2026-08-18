@@ -6,7 +6,6 @@ client = TestClient(app)
 
 
 class TestAPI:
-
     def test_health_check(self):
         response = client.get("/health")
         assert response.status_code == 200

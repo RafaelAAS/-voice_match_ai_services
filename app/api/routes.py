@@ -98,10 +98,13 @@ async def final_evaluation(
     Gera o parecer final consolidado do candidato pela IA.
     """
     import json
+
     if hasattr(ai_service, "generate_final_evaluation"):
         try:
             raw = request.candidate_answer.strip()
-            parsed = json.loads(raw) if (raw.startswith("{") or raw.startswith("[")) else {}
+            parsed = (
+                json.loads(raw) if (raw.startswith("{") or raw.startswith("[")) else {}
+            )
         except Exception:
             parsed = {}
 
